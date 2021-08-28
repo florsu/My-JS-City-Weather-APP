@@ -1,4 +1,5 @@
 const DateTime = luxon.DateTime
+const historyKey = 'history'
 
 //API Key
 const openWeatherapi = '166a433c57516f51dfab1f7edaed8413'
@@ -62,6 +63,7 @@ City History 1
 $("#search-button").on("click", function (event) {
     let searchValue = $("#search-value").val().trim()
     addHistory(searchValue)
+    storeHistory()
 
     // Build the query URL for the ajax request to the API
     let queryURL = buildCurrentWeatherURL(searchValue)
@@ -72,11 +74,45 @@ $("#search-button").on("click", function (event) {
         url: queryURL,
         method: "GET",
     }).then(updateCurrentWeather)
-
 })
+
+$("#history").on('click', '.history', function (event) {
+    let searchValue = event.currentTarget.innerText
+    // Build the query URL for the ajax request to the API
+    let queryURL = buildCurrentWeatherURL(searchValue)
+
+    // Make the AJAX request to the API - GETs the JSON data at the queryURL.
+    // The data then gets passed as an argument to the updatePage function
+    $.ajax({
+        url: queryURL,
+        method: "GET",
+    }).then(updateCurrentWeather)
+})
+
+$("#clear-history").on("click", function (event) {
+    localStorage.removeItem(historyKey)
+    $("#history").empty()
+})
+
+loadHistory()
+function loadHistory() {
+    let history = localStorage.getItem(historyKey)
+    if (history) {
+        let storedNames = JSON.parse(history)
+        console.log(storedNames)
+        for (let i = storedNames.length; i > 0; i--) {
+            let history = storedNames[i - 1]
+            if (history != '') {
+                addHistory(history)
+                console.log(`${i} ${history}`)
+            }
+        }
+    }
+}
+
 /**
  * takes API data (JSON/object) and turns it into elements on the page
- * @param {object} weatherData - object containing Yelp Fusion API data
+ * @param {object} weatherData - object containing API data
  */
 function updateCurrentWeather(weatherData) {
     let date = DateTime.fromSeconds(weatherData.dt).toLocaleString(DateTime.DATE_SHORT)
@@ -98,8 +134,6 @@ function updateCurrentWeather(weatherData) {
         url: uvIndexURL,
         method: "GET",
     }).then(updateUVindex)
-
-
 }
 /**
 * takes API data (JSON/object) and turns it into elements on the page
@@ -107,17 +141,21 @@ function updateCurrentWeather(weatherData) {
 */
 function updateUVindex(weatherData) {
     let uvi = weatherData.current.uvi
-     
+ 
     // Log the weatherData to console, where it will show up as an object
     console.log(weatherData)
     console.log("------------------------------------")
     $("#uv_index").html(`UV Index: &nbsp;<div id="uv_color">&nbsp;${uvi}&nbsp;</div>`)
     if (uvi < 3) {
-        $("#uv_color").attr('style', 'background:green;')
-    } else if (uvi < 8) {
+        $("#uv_color").attr('style', 'background:greenyellow;')
+    } else if (uvi < 6) {
         $("#uv_color").attr('style', 'background:yellow;')
+    } else if (uvi < 8) {
+        $("#uv_color").attr('style', 'background:orange;')
+    } else if (uvi < 11) {
+        $("#uv_color").attr('style', 'background:red;color:white;')
     } else {
-        $("#uv_color").attr('style', 'background:red;')
+        $("#uv_color").attr('style', 'background:violet;')
     }
 
     for (let i = 1; i <= 5; i++) {
@@ -132,9 +170,7 @@ function updateForecast(i, forecast) {
     $(`#icon${i}`).attr('src', buildIconURL(forecast.weather[0].icon))
     $(`#temp${i}`).html(`Temperature: ${forecast.temp.day} &deg;F`)
     $(`#humidity${i}`).html(`Humidity: ${forecast.humidity} %`)
-
-
-
+    $("#forecast").removeClass('hide')
 }
 
 function addHistory(cityHistorySearch) {
@@ -145,10 +181,19 @@ function addHistory(cityHistorySearch) {
     // Create the  list group to contain the cities and add the city search results content for each
     let $cityHistoryEle = $("<div>")
     $cityHistoryEle.addClass("history")
+    $cityHistoryEle.addClass("pointer")
+    $cityHistoryEle.addClass("clickable-row")
     $cityHistoryEle.text(cityHistorySearch)
+    //  $cityHistoryEle.attr('onclick', "location.href='#'")
 
     // Add the newly created element to the DOM
     $("#history").prepend($cityHistoryEle)
-
 }
 
+function storeHistory() {
+    let histories = []
+    $('.history').each(function () {
+        histories.push($(this).text())
+    })
+    localStorage.setItem(historyKey, JSON.stringify(histories))
+}

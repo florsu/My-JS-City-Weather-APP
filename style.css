@@ -5,3 +5,15 @@
     border: 1px solid lightgray;
     margin: 0px;
 }
+
+.pointer {
+    cursor: pointer;
+}
+
+.clickable-row:hover {
+    background: #fafafa;
+}
+
+.hide {
+    display: none;
+}
